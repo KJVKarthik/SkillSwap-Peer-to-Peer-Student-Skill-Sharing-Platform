@@ -1,0 +1,15 @@
+{
+  "name": "student-skill-swap",
+  "version": "1.0.0",
+  "description": "Student Skill Swap: Peer-to-Peer Exchange platform with 1-on-1 skill barters, hourly rate tutoring, peer reviews, and Gmail integration",
+  "scripts": {
+    "dev": "concurrently -n \"SERVER,CLIENT\" -c \"blue,magenta\" \"node server/server.js\" \"npm run dev --prefix client\"",
+    "build": "npm run build --prefix client",
+    "start": "node server/server.js",
+    "server": "node server/server.js",
+    "client": "npm run dev --prefix client"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.2"
+  }
+}

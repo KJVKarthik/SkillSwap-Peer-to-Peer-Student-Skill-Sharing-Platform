@@ -1,0 +1,437 @@
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
+import { initMySQL, isMySQLActive, getMySQLPool, getMySQLError } from './mysql.js';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const DB_FILE = path.join(__dirname, 'data', 'db.json');
+
+// Initial seed data with Indian Rupees (₹)
+export const initialData = {
+  students: [
+    {
+      id: "student-1",
+      name: "Alex Chen",
+      email: "alex.chen.dev@gmail.com",
+      university: "UC Berkeley",
+      major: "Computer Science & AI",
+      avatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200&auto=format&fit=crop&q=80",
+      bio: "Junior CS major @ UC Berkeley. Built production web apps and ML models. Love breaking down complex algorithmic concepts and teaching full-stack web development. Passionate about peer learning!",
+      hourlyRate: 800,
+      openToSwap: true,
+      rating: 4.9,
+      reviewCount: 18,
+      verifiedStudent: true,
+      location: "Berkeley, CA (Hybrid / Online)",
+      skillsOffered: [
+        { id: "so-1", name: "React & Next.js", category: "Programming", level: "Expert", description: "Modern React hooks, state management, full-stack Next.js apps", isSwapAvailable: true, hourlyPrice: 800 },
+        { id: "so-2", name: "Python & Machine Learning", category: "Programming", level: "Advanced", description: "NumPy, Pandas, PyTorch basics, and algorithm problem solving", isSwapAvailable: true, hourlyPrice: 1000 },
+        { id: "so-3", name: "Data Structures & Algos", category: "Programming", level: "Expert", description: "LeetCode patterns, trees, graphs, dynamic programming interview prep", isSwapAvailable: true, hourlyPrice: 800 }
+      ],
+      skillsWanted: [
+        { id: "sw-1", name: "UI/UX & Figma Design", category: "Design", level: "Beginner", notes: "Looking to make clean, modern component designs" },
+        { id: "sw-2", name: "Spanish Conversation", category: "Languages", level: "Intermediate", notes: "Want to practice speaking fluently for study abroad" },
+        { id: "sw-3", name: "Acoustic Guitar", category: "Music", level: "Beginner", notes: "Learning basic fingerpicking and chords" }
+      ]
+    },
+    {
+      id: "student-2",
+      name: "Elena Gomez",
+      email: "elena.gomez.design@gmail.com",
+      university: "Stanford University",
+      major: "Product Design & HCI",
+      avatar: "https://images.unsplash.com/photo-1517841905240-472988babdf9?w=200&auto=format&fit=crop&q=80",
+      bio: "Stanford HCI master's student with 3+ years freelancing in UX/UI design. I teach Figma autolayout, design tokens, and native Spanish. Seeking to swap for React coding to turn my designs into code!",
+      hourlyRate: 900,
+      openToSwap: true,
+      rating: 5.0,
+      reviewCount: 24,
+      verifiedStudent: true,
+      location: "Stanford, CA (Online / Campus)",
+      skillsOffered: [
+        { id: "so-4", name: "UI/UX & Figma Design", category: "Design", level: "Expert", description: "Auto-layout, reusable components, interactive prototypes, design systems", isSwapAvailable: true, hourlyPrice: 900 },
+        { id: "so-5", name: "Brand Identity & Logo Design", category: "Design", level: "Advanced", description: "Typography, color theory, vector graphics in Illustrator", isSwapAvailable: true, hourlyPrice: 800 },
+        { id: "so-6", name: "Spanish (Native Speaker)", category: "Languages", level: "Native", description: "Fluent conversational Spanish, grammar correction, cultural nuance", isSwapAvailable: true, hourlyPrice: 600 }
+      ],
+      skillsWanted: [
+        { id: "sw-4", name: "React & Next.js", category: "Programming", level: "Beginner", notes: "Want to build portfolio websites and interactive prototypes" },
+        { id: "sw-5", name: "Video Editing", category: "Media", level: "Beginner", notes: "For case study demo videos" },
+        { id: "sw-5b", name: "Python", category: "Programming", level: "Beginner", notes: "Interested in basic scripting and automation" }
+      ]
+    },
+    {
+      id: "student-1793119155595",
+      name: "KJV Karthik",
+      email: "kk7504@srmist.edu.in",
+      university: "SRM University",
+      major: "Computer Science & Engineering",
+      avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=KJV%20Karthik",
+      bio: "CS major at SRM University. Passionate about software development, full-stack tools, and digital media production. Eager to swap coding & editing skills with student mentors worldwide!",
+      hourlyRate: 600,
+      openToSwap: true,
+      rating: 5.0,
+      reviewCount: 5,
+      verifiedStudent: true,
+      location: "Chennai, India (Hybrid / Online)",
+      skillsOffered: [
+        { id: "so-k1", name: "Python", category: "Programming", level: "Advanced", description: "Python scripting, data parsing, object-oriented concepts", isSwapAvailable: true, hourlyPrice: 600 },
+        { id: "so-k2", name: "Java", category: "Programming", level: "Intermediate", description: "Core Java, OOP, data structures, and problem solving", isSwapAvailable: true, hourlyPrice: 600 },
+        { id: "so-k3", name: "Canva & Graphic Design", category: "Design", level: "Expert", description: "Social media design, posters, presentation pitch decks in Canva", isSwapAvailable: true, hourlyPrice: 500 },
+        { id: "so-k4", name: "DaVinci Resolve", category: "Media", level: "Advanced", description: "Color grading, timeline editing, audio ducking", isSwapAvailable: true, hourlyPrice: 600 },
+        { id: "so-k5", name: "Premiere Pro & After Effects", category: "Media", level: "Advanced", description: "Video editing, motion graphics, transitions, keyframing", isSwapAvailable: true, hourlyPrice: 700 }
+      ],
+      skillsWanted: [
+        { id: "sw-k1", name: "UI/UX & Figma Design", category: "Design", level: "Beginner", notes: "Looking to learn Figma auto-layout and UI prototyping" },
+        { id: "sw-k2", name: "React & Next.js", category: "Programming", level: "Beginner", notes: "Building responsive frontends and interactive web apps" }
+      ]
+    },
+    {
+      id: "student-3",
+      name: "Marcus Aurel",
+      email: "marcus.aurel.music@gmail.com",
+      university: "NYU Tisch School",
+      major: "Music Production & Audio Tech",
+      avatar: "https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=200&auto=format&fit=crop&q=80",
+      bio: "NYU audio producer & guitarist for 8 years. Taught 40+ beginner to intermediate students. Let's trade guitar technique or Ableton mixing for Python coding or financial literacy!",
+      hourlyRate: 1200,
+      openToSwap: true,
+      rating: 4.8,
+      reviewCount: 15,
+      verifiedStudent: true,
+      location: "New York, NY (Online)",
+      skillsOffered: [
+        { id: "so-7", name: "Acoustic & Electric Guitar", category: "Music", level: "Expert", description: "Chords, scales, fingerstyle, soloing, and ear training", isSwapAvailable: true, hourlyPrice: 1200 },
+        { id: "so-8", name: "Music Production (Ableton)", category: "Music", level: "Expert", description: "Beat making, EQ, compression, synths, and final vocal mixing", isSwapAvailable: true, hourlyPrice: 1000 }
+      ],
+      skillsWanted: [
+        { id: "sw-6", name: "Python & Machine Learning", category: "Programming", level: "Beginner", notes: "Audio synthesis scripts and DSP" },
+        { id: "sw-7", name: "Personal Finance & Budgeting", category: "Business", level: "Beginner", notes: "Student budgeting and investing basics" }
+      ]
+    },
+    {
+      id: "student-4",
+      name: "Priya Sharma",
+      email: "priya.sharma.mit@gmail.com",
+      university: "MIT",
+      major: "Applied Mathematics & Data Science",
+      avatar: "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=200&auto=format&fit=crop&q=80",
+      bio: "Applied Math major at MIT. I simplify tough calculus and statistics topics into intuitive mental models. Happy to swap tutoring for public speaking skills or DSLR photography!",
+      hourlyRate: 950,
+      openToSwap: true,
+      rating: 4.95,
+      reviewCount: 31,
+      verifiedStudent: true,
+      location: "Cambridge, MA (Online / Campus)",
+      skillsOffered: [
+        { id: "so-9", name: "Calculus I, II & Linear Algebra", category: "Academics", level: "Expert", description: "Derivatives, integrals, multivariable calc, matrix decompositions", isSwapAvailable: true, hourlyPrice: 950 },
+        { id: "so-10", name: "Probability & Statistics", category: "Academics", level: "Expert", description: "Hypothesis testing, Bayesian inference, distributions, regression", isSwapAvailable: true, hourlyPrice: 950 },
+        { id: "so-11", name: "SQL & Data Analytics", category: "Programming", level: "Advanced", description: "Complex queries, window functions, and data insights", isSwapAvailable: true, hourlyPrice: 850 }
+      ],
+      skillsWanted: [
+        { id: "sw-8", name: "Public Speaking & Presentation Skills", category: "Career", level: "Beginner", notes: "Need help presenting research at academic conferences" },
+        { id: "sw-9", name: "Digital Photography", category: "Media", level: "Beginner", notes: "Camera settings, manual exposure, composition" }
+      ]
+    },
+    {
+      id: "student-5",
+      name: "Liam O'Connor",
+      email: "liam.film.columbia@gmail.com",
+      university: "Columbia University",
+      major: "Film & Digital Media",
+      avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200&auto=format&fit=crop&q=80",
+      bio: "Indie filmmaker & commercial video editor. Edited over 50 YouTube videos and student films. Eager to swap filmmaking/Premiere lessons for 3D modeling in Blender or CAD!",
+      hourlyRate: 750,
+      openToSwap: true,
+      rating: 4.75,
+      reviewCount: 14,
+      verifiedStudent: true,
+      location: "New York, NY (Online / Campus)",
+      skillsOffered: [
+        { id: "so-12", name: "Video Editing (Premiere & DaVinci)", category: "Media", level: "Expert", description: "Pacing, sound design, multi-cam editing, speed ramping, transitions", isSwapAvailable: true, hourlyPrice: 750 },
+        { id: "so-13", name: "Cinematography & Lighting", category: "Media", level: "Advanced", description: "3-point lighting setups, lens choice, camera movement techniques", isSwapAvailable: true, hourlyPrice: 800 }
+      ],
+      skillsWanted: [
+        { id: "sw-10", name: "3D Modeling & CAD", category: "Design", level: "Beginner", notes: "Want to create 3D assets for VFX" },
+        { id: "sw-11", name: "Japanese Basics", category: "Languages", level: "Beginner", notes: "Interested in conversational Japanese" }
+      ]
+    },
+    {
+      id: "student-6",
+      name: "Maya Lin",
+      email: "maya.lin.harvard@gmail.com",
+      university: "Harvard University",
+      major: "Economics & Finance",
+      avatar: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=200&auto=format&fit=crop&q=80",
+      bio: "Harvard sophomore passionate about financial literacy for young adults. 100% peer barter focused (no money required!). Looking for a coding partner to trade finance knowledge for Python.",
+      hourlyRate: 0,
+      openToSwap: true,
+      rating: 5.0,
+      reviewCount: 11,
+      verifiedStudent: true,
+      location: "Cambridge, MA (Online)",
+      skillsOffered: [
+        { id: "so-14", name: "Personal Finance & Budgeting", category: "Business", level: "Expert", description: "Roth IRAs, 401ks, student budgeting, credit scores, index fund basics", isSwapAvailable: true, hourlyPrice: 0 },
+        { id: "so-15", name: "Excel & Financial Modeling", category: "Business", level: "Expert", description: "DCF models, pivot tables, VLOOKUP/XLOOKUP, financial statements", isSwapAvailable: true, hourlyPrice: 0 },
+        { id: "so-16", name: "Mandarin Chinese (Fluent)", category: "Languages", level: "Native", description: "Conversational Mandarin and pinyin practice", isSwapAvailable: true, hourlyPrice: 0 }
+      ],
+      skillsWanted: [
+        { id: "sw-12", name: "Python & Machine Learning", category: "Programming", level: "Beginner", notes: "Automating financial data scrapers" },
+        { id: "sw-13", name: "React & Next.js", category: "Programming", level: "Beginner", notes: "Building personal finance calculator tool" }
+      ]
+    },
+    {
+      id: "student-7",
+      name: "David Kim",
+      email: "david.kim.gatech@gmail.com",
+      university: "Georgia Tech",
+      major: "Robotics & Mechanical Engineering",
+      avatar: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=200&auto=format&fit=crop&q=80",
+      bio: "Robotics club captain. Love building physical prototypes, sensors, and CAD models. Keen to swap with a media creator or graphic designer!",
+      hourlyRate: 800,
+      openToSwap: true,
+      rating: 4.85,
+      reviewCount: 19,
+      verifiedStudent: true,
+      location: "Atlanta, GA (Online / Campus)",
+      skillsOffered: [
+        { id: "so-17", name: "3D Modeling & CAD", category: "Design", level: "Expert", description: "Fusion 360, SolidWorks, Blender basics, 3D printing slicing", isSwapAvailable: true, hourlyPrice: 800 },
+        { id: "so-18", name: "Arduino & Embedded C++", category: "Programming", level: "Advanced", description: "Microcontrollers, motor drivers, sensor integration, breadboarding", isSwapAvailable: true, hourlyPrice: 800 }
+      ],
+      skillsWanted: [
+        { id: "sw-14", name: "Video Editing (Premiere & DaVinci)", category: "Media", level: "Beginner", notes: "Showcasing our robot battle footage" },
+        { id: "sw-15", name: "UI/UX & Figma Design", category: "Design", level: "Intermediate", notes: "Creating dashboard controls for robot telemetry" }
+      ]
+    },
+    {
+      id: "student-8",
+      name: "Sarah Jenkins",
+      email: "sarah.jenkins.ucla@gmail.com",
+      university: "UCLA",
+      major: "Communications & Pre-Law",
+      avatar: "https://images.unsplash.com/photo-1524504388940-b1c1722653e1?w=200&auto=format&fit=crop&q=80",
+      bio: "Speech and debate national finalist. Helped 30+ students ace tech and consulting behavioral interviews and overcome stage anxiety. Looking to trade for college calculus or math tutoring!",
+      hourlyRate: 850,
+      openToSwap: true,
+      rating: 4.92,
+      reviewCount: 22,
+      verifiedStudent: true,
+      location: "Los Angeles, CA (Online)",
+      skillsOffered: [
+        { id: "so-19", name: "Public Speaking & Presentation Skills", category: "Career", level: "Expert", description: "Overcoming stage fright, vocal pacing, storytelling, deck delivery", isSwapAvailable: true, hourlyPrice: 850 },
+        { id: "so-20", name: "Resume & Behavioral Interview Prep", category: "Career", level: "Expert", description: "STAR method interview responses, resume tailoring, confidence coaching", isSwapAvailable: true, hourlyPrice: 900 }
+      ],
+      skillsWanted: [
+        { id: "sw-16", name: "Calculus I, II & Linear Algebra", category: "Academics", level: "Intermediate", notes: "Pre-law logic and quantitative requirements" },
+        { id: "sw-17", name: "Probability & Statistics", category: "Academics", level: "Beginner", notes: "Statistical analysis for legal research" }
+      ]
+    }
+  ],
+  requests: [
+    {
+      id: "req-1",
+      requesterId: "student-1",
+      requesterName: "Alex Chen",
+      requesterEmail: "alex.chen.dev@gmail.com",
+      requesterAvatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200&auto=format&fit=crop&q=80",
+      providerId: "student-2",
+      providerName: "Elena Gomez",
+      providerEmail: "elena.gomez.design@gmail.com",
+      type: "swap",
+      offeredSkill: "React & Next.js",
+      requestedSkill: "UI/UX & Figma Design",
+      durationHours: 1,
+      totalAmount: 0,
+      scheduledTime: "Tomorrow at 4:00 PM IST",
+      status: "accepted",
+      meetingPlatform: "Google Meet",
+      meetingLink: "https://meet.google.com/abc-swap-xyz",
+      notes: "Excited to trade 1 hour of React component architecture for Figma component sets and auto-layout!",
+      createdAt: new Date(Date.now() - 86400000 * 2).toISOString()
+    },
+    {
+      id: "req-2",
+      requesterId: "student-3",
+      requesterName: "Marcus Aurel",
+      requesterEmail: "marcus.aurel.music@gmail.com",
+      requesterAvatar: "https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=200&auto=format&fit=crop&q=80",
+      providerId: "student-1",
+      providerName: "Alex Chen",
+      providerEmail: "alex.chen.dev@gmail.com",
+      type: "paid",
+      offeredSkill: null,
+      requestedSkill: "Python & Machine Learning",
+      durationHours: 2,
+      totalAmount: 1600,
+      scheduledTime: "Friday at 2:00 PM IST",
+      status: "pending",
+      meetingPlatform: "Google Meet",
+      meetingLink: "",
+      notes: "Need 2 hours of paid tutoring on PyTorch basics and simple model training.",
+      createdAt: new Date(Date.now() - 3600000 * 6).toISOString()
+    },
+    {
+      id: "req-3",
+      requesterId: "student-1793119155595",
+      requesterName: "KJV Karthik",
+      requesterEmail: "kk7504@srmist.edu.in",
+      requesterAvatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=KJV%20Karthik",
+      providerId: "student-2",
+      providerName: "Elena Gomez",
+      providerEmail: "elena.gomez.design@gmail.com",
+      type: "swap",
+      offeredSkill: "Python",
+      requestedSkill: "UI/UX & Figma Design",
+      durationHours: 1,
+      totalAmount: 0,
+      scheduledTime: "Wednesday at 5:00 PM IST",
+      status: "pending",
+      meetingPlatform: "Google Meet",
+      meetingLink: "https://meet.google.com/skillswap-244657",
+      notes: "Hey Elena! Would love to trade 1 hour of Python scripting for hands-on Figma tips.",
+      createdAt: new Date(Date.now() - 3600000 * 12).toISOString()
+    }
+  ],
+  reviews: [
+    {
+      id: "rev-1",
+      studentId: "student-1",
+      reviewerId: "student-2",
+      reviewerName: "Elena Gomez",
+      reviewerAvatar: "https://images.unsplash.com/photo-1517841905240-472988babdf9?w=200&auto=format&fit=crop&q=80",
+      reviewerUniversity: "Stanford University",
+      rating: 5,
+      skillName: "React & Next.js",
+      sessionType: "Skill Barter",
+      comment: "Alex is an incredible teacher! He helped me understand React props and state in 45 minutes when I had been struggling for a week. We swapped for a Figma session. 10/10 recommendation!",
+      createdAt: new Date(Date.now() - 86400000 * 3).toISOString()
+    },
+    {
+      id: "rev-2",
+      studentId: "student-1",
+      reviewerId: "student-5",
+      reviewerName: "Liam O'Connor",
+      reviewerAvatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200&auto=format&fit=crop&q=80",
+      reviewerUniversity: "Columbia University",
+      rating: 5,
+      skillName: "Data Structures & Algos",
+      sessionType: "Paid Session (₹800/hr)",
+      comment: "Booked a 2-hour paid tutoring session with Alex for upcoming technical interviews. He explained tree traversals so cleanly. Worth every rupee!",
+      createdAt: new Date(Date.now() - 86400000 * 7).toISOString()
+    },
+    {
+      id: "rev-3",
+      studentId: "student-2",
+      reviewerId: "student-1",
+      reviewerName: "Alex Chen",
+      reviewerAvatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200&auto=format&fit=crop&q=80",
+      reviewerUniversity: "UC Berkeley",
+      rating: 5,
+      skillName: "UI/UX & Figma Design",
+      sessionType: "Skill Barter",
+      comment: "Elena broke down Figma auto-layout and design systems with such ease. She shared actual Stanford design templates with me. Fantastic swapper!",
+      createdAt: new Date(Date.now() - 86400000 * 4).toISOString()
+    }
+  ],
+  mailLogs: [
+    {
+      id: "mlog-1",
+      senderId: "student-1793119155595",
+      senderName: "KJV Karthik",
+      senderEmail: "kk7504@srmist.edu.in",
+      mentorId: "student-2",
+      mentorName: "Elena Gomez",
+      mentorEmail: "elena.gomez.design@gmail.com",
+      mentorUniversity: "Stanford University",
+      skillName: "UI/UX & Figma Design",
+      sessionType: "Free Skill Swap",
+      hourlyRate: 900,
+      subject: "SkillSwap: UI/UX & Figma Design (Skill Swap Inquiry)",
+      body: "Hi Elena Gomez,\n\nI am KJV Karthik from SRM University. I saw your listing for \"UI/UX & Figma Design\" on SkillSwap.\n\nI would love to propose a free 1-on-1 skill swap! I can teach: Python, Java, or Video Editing.\n\nCould you let me know your availability this week?\n\nBest regards,\nKJV Karthik (kk7504@srmist.edu.in)",
+      draftOpened: true,
+      openedAt: new Date(Date.now() - 3600000 * 14).toISOString(),
+      createdAt: new Date(Date.now() - 3600000 * 14).toISOString()
+    },
+    {
+      id: "mlog-2",
+      senderId: "student-1",
+      senderName: "Alex Chen",
+      senderEmail: "alex.chen.dev@gmail.com",
+      mentorId: "student-4",
+      mentorName: "Priya Sharma",
+      mentorEmail: "priya.sharma.mit@gmail.com",
+      mentorUniversity: "MIT",
+      skillName: "Calculus I, II & Linear Algebra",
+      sessionType: "Paid Mentoring Session",
+      hourlyRate: 950,
+      subject: "SkillSwap: Calculus I, II & Linear Algebra (Paid Mentoring Inquiry)",
+      body: "Hi Priya Sharma,\n\nI am Alex Chen from UC Berkeley. I saw your listing for \"Calculus I, II & Linear Algebra\" on SkillSwap.\n\nI would love to book a paid mentoring session with you at your rate of ₹950/hr for exam review.\n\nBest regards,\nAlex Chen (alex.chen.dev@gmail.com)",
+      draftOpened: true,
+      openedAt: new Date(Date.now() - 86400000 * 1).toISOString(),
+      createdAt: new Date(Date.now() - 86400000 * 1).toISOString()
+    }
+  ],
+  notifications: [
+    {
+      id: "notif-1",
+      recipientEmail: "elena.gomez.design@gmail.com",
+      recipientName: "Elena Gomez",
+      senderName: "KJV Karthik",
+      senderEmail: "kk7504@srmist.edu.in",
+      subject: "SkillSwap: 1-on-1 Barter Request from KJV Karthik",
+      body: "Hi Elena Gomez,\n\nKJV Karthik has proposed a 1-on-1 skill swap!\n\nThey want to learn: UI/UX & Figma Design\nThey are offering to teach: Python\nProposed Time: Wednesday at 5:00 PM IST\n\nYou can reply directly to kk7504@srmist.edu.in via Gmail or manage this in your SkillSwap dashboard.",
+      timestamp: new Date(Date.now() - 3600000 * 12).toISOString(),
+      read: false
+    }
+  ]
+};
+
+export function initDB() {
+  const dir = path.join(__dirname, 'data');
+  if (!fs.existsSync(dir)) {
+    fs.mkdirSync(dir, { recursive: true });
+  }
+  if (!fs.existsSync(DB_FILE)) {
+    fs.writeFileSync(DB_FILE, JSON.stringify(initialData, null, 2), 'utf-8');
+  }
+}
+
+export function readDB() {
+  initDB();
+  try {
+    const raw = fs.readFileSync(DB_FILE, 'utf-8');
+    const parsed = JSON.parse(raw);
+    if (!parsed.mailLogs) parsed.mailLogs = initialData.mailLogs;
+    return parsed;
+  } catch (err) {
+    console.error('Error reading db.json, restoring initial seed:', err);
+    fs.writeFileSync(DB_FILE, JSON.stringify(initialData, null, 2), 'utf-8');
+    return initialData;
+  }
+}
+
+export function writeDB(data) {
+  initDB();
+  if (!data.mailLogs) data.mailLogs = [];
+  fs.writeFileSync(DB_FILE, JSON.stringify(data, null, 2), 'utf-8');
+}
+
+export function resetDB() {
+  initDB();
+  fs.writeFileSync(DB_FILE, JSON.stringify(initialData, null, 2), 'utf-8');
+  return initialData;
+}
+
+export function getStorageStatus() {
+  if (isMySQLActive()) {
+    return {
+      mode: 'mysql',
+      details: 'Connected to live MySQL database (Tables: students, skills_offered, skills_wanted, swap_requests, reviews, mail_logs, notifications)',
+    };
+  }
+  return {
+    mode: 'local_demo',
+    details: 'Persistent Local Demo Mode active (server/data/db.json). MySQL credentials not provided or not connected.',
+    error: getMySQLError()
+  };
+}
